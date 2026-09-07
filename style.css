@@ -706,6 +706,10 @@ body {
   margin: 0 0 8px;
   text-align: center;
 }
+.footer-link-accent {
+  color: var(--primary-dark);
+  font-weight: 700;
+}
 
 .lucky-pr-tag {
   display: inline-block;

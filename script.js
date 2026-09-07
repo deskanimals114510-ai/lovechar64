@@ -1009,12 +1009,16 @@ function renderOptions(q) {
   if (firstOption) firstOption.focus({ preventScroll: false });
 }
 
+let isAnswering = false;
+
 function selectOption(q, opt) {
+  if (isAnswering) return; // マルチタッチ等での二重発火防止(5名レビューのエッジケース指摘で追加)
+  isAnswering = true;
   addBubble(opt.text, 'user');
   answers.push({ block: q.block, axis: opt.axis, weight: opt.weight });
   chatOptions.innerHTML = '';
   currentIndex++;
-  setTimeout(askNext, 350);
+  setTimeout(() => { isAnswering = false; askNext(); }, 350);
 }
 
 const AXIS_PAIRS = [['E', 'I'], ['S', 'N'], ['T', 'F'], ['J', 'P']];
@@ -1445,6 +1449,10 @@ function shareLoveCharResultLine() {
 function restartQuiz() {
   isSharedView = false;
   document.getElementById('btn-restart').textContent = 'もう一度診断する';
+  // 共有結果(?r=)経由で開いた後の再診断中にリロードされると、loadFromResultCode
+  // IIFEが古い?rを再読込して進行中の回答を消してしまうため、URLから?rを外しておく
+  // (5名レビューのエッジケース指摘で追加)
+  history.replaceState(null, '', location.pathname);
   startQuiz();
 }
 
