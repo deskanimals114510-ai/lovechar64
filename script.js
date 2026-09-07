@@ -1463,7 +1463,7 @@ function restartQuiz() {
 })();
 
 // ===== アクセス解析(任意) =====
-const GA_MEASUREMENT_ID = ''; // 測定IDが決まり次第ここに設定(空文字の間は読み込みません)
+const GA_MEASUREMENT_ID = 'G-6M4B4EPJM6';
 const isLocalDev = ['localhost', '127.0.0.1', ''].includes(location.hostname);
 if (GA_MEASUREMENT_ID && !isLocalDev) {
   const gaScript = document.createElement('script');
