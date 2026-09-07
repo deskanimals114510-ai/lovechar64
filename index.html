@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.googletagmanager.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://www.google-analytics.com https://www.googletagmanager.com https://*.google-analytics.com; base-uri 'self'; form-action 'self';">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>恋愛キャラ診断(全64通り)</title>
+<meta name="description" content="AIとチャットする20問だけの無料診断。あなたの恋愛キャラを64通りの中から診断、毒舌イラスト付きでお届けします。">
+
+<!-- OGP (Facebook/LINE等) -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="恋愛キャラ診断(全64通り)">
+<meta property="og:description" content="AIとチャットする20問だけの無料診断。あなたの恋愛キャラを64通りの中から診断、毒舌イラスト付きでお届けします。">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:url" content="https://deskanimals114510-ai.github.io/lovechar64/">
+<link rel="canonical" href="https://deskanimals114510-ai.github.io/lovechar64/">
+<meta property="og:image" content="https://deskanimals114510-ai.github.io/lovechar64/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="恋愛キャラ診断(全64通り)">
+<meta name="twitter:description" content="AIとチャットする20問だけの無料診断。あなたの恋愛キャラを64通りの中から診断します。">
+<meta name="twitter:image" content="https://deskanimals114510-ai.github.io/lovechar64/og-image.jpg">
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💞</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700;900&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"恋愛キャラ診断(全64通り)","description":"AIとチャットする20問だけの無料診断。あなたの恋愛キャラを64通りの中から診断、毒舌イラスト付きでお届けします。","url":"https://deskanimals114510-ai.github.io/lovechar64/","inLanguage":"ja"}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"Organization","@id":"https://deskanimals114510-ai.github.io/lovechar64/#organization","name":"Desk Animals Lab","url":"https://deskanimals114510-ai.github.io/lovechar64/","logo":{"@type":"ImageObject","url":"https://deskanimals114510-ai.github.io/lovechar64/og-image.jpg","width":1200,"height":630},"sameAs":["https://x.com/deskanimalslab","https://www.instagram.com/desk.animals114510/","https://www.tiktok.com/@desk.animals"]}</script>
+<!--
+  アクセス解析(任意): Google Analytics 4を使う場合は script.js の GA_MEASUREMENT_ID に
+  測定IDを設定してください(空文字の間は解析コードを読み込みません、追加コストなし)。
+-->
+</head>
+<body>
+<div class="bg-blobs" aria-hidden="true">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+  <div class="blob blob-4"></div>
+</div>
+<div class="sparkles" aria-hidden="true">
+  <span class="sparkle">💞</span>
+  <span class="sparkle">💗</span>
+  <span class="sparkle">🌸</span>
+  <span class="sparkle">⭐</span>
+  <span class="sparkle">💫</span>
+  <span class="sparkle">🎀</span>
+  <span class="sparkle">✨</span>
+  <span class="sparkle">💕</span>
+</div>
+
+<main id="app">
+
+  <!-- スタート画面 -->
+  <section id="screen-start" class="screen active">
+    <div class="start-card">
+      <div class="start-emoji">💞</div>
+      <span class="eyebrow">FREE LOVE CHARACTER TEST</span>
+      <h1 id="start-title">あなたの<span class="grad-text">恋愛キャラ</span>、診断します</h1>
+      <p class="lead">AIとチャットしながら答えるだけの20問。<br>64通りのキャラの中から、あなただけの1体を<br>毒舌イラスト付きで診断します。</p>
+      <div class="badges">
+        <span class="badge">💞 64通り</span>
+        <span class="badge">🎨 個別イラスト</span>
+        <span class="badge">😈 毒舌診断</span>
+      </div>
+      <button id="btn-start" class="btn-primary">診断をはじめる ✨</button>
+      <p class="sub">全20問・所要時間 約2分</p>
+    </div>
+  </section>
+
+  <!-- チャット画面 -->
+  <section id="screen-chat" class="screen">
+    <div class="chat-header">
+      <div class="chat-header-top">
+        <span id="block-label" class="block-label">性格編</span>
+      </div>
+      <div class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="20" aria-valuenow="1" aria-label="診断の進捗"><div id="progress-fill" class="progress-fill"></div></div>
+      <span id="progress-text" class="progress-text">1 / 20</span>
+    </div>
+    <div id="chat-log" class="chat-log" role="log" aria-live="polite"></div>
+    <div id="chat-options" class="chat-options"></div>
+  </section>
+
+  <!-- 結果画面 -->
+  <section id="screen-result" class="screen">
+    <div class="result-header">
+      <span class="eyebrow">RESULT</span>
+      <p id="result-title-el" class="result-title">恋愛キャラ <span class="grad-text">できました</span></p>
+    </div>
+    <div id="lovechar-card-preview" class="result-card-preview"></div>
+    <p class="result-card-preview-hint"><span>画像を長押し(スマホ)または右クリックで保存できます</span> <a href="#lovechar-save-actions" class="result-card-preview-hint-link">保存ボタンはこちら 👇</a></p>
+    <div class="result-actions">
+      <button id="btn-share-lovechar" class="btn-primary">💞 恋愛キャラをXでシェア 🚀</button>
+      <button id="btn-share-lovechar-line" class="btn-secondary btn-line">LINEでシェア</button>
+      <button id="btn-copy-url" class="btn-secondary" aria-live="polite">結果URLをコピー 🔗</button>
+      <button id="btn-restart" class="btn-secondary">もう一度診断する</button>
+    </div>
+    <div id="lovechar-save-actions" class="result-actions result-actions-card">
+      <button id="btn-save-lovechar-card" class="btn-secondary">恋愛キャラカードを保存 🖼️</button>
+      <button id="btn-save-lovechar-card-story" class="btn-secondary">ストーリーズ用に保存 📱</button>
+    </div>
+    <a class="hub-cta" href="https://deskanimals114510-ai.github.io/personality-type-quiz/" target="_blank" rel="noopener">
+      <span class="hub-cta-emoji">🔮</span>
+      <span class="hub-cta-text">
+        <span class="hub-cta-title">性格・恋愛・仕事タイプも診断してみる</span>
+        <span class="hub-cta-sub">MBTI診断で、あなたの3つの顔をチェック</span>
+      </span>
+      <span class="hub-cta-arrow" aria-hidden="true">›</span>
+    </a>
+    <div class="follow-links">
+      <p class="follow-label">💞 Desk Animalsをフォローする</p>
+      <div class="follow-btns">
+        <a class="follow-link" href="https://x.com/deskanimalslab" target="_blank" rel="noopener">X</a>
+        <a class="follow-link" href="https://www.instagram.com/desk.animals114510/" target="_blank" rel="noopener">Instagram</a>
+        <a class="follow-link" href="https://www.tiktok.com/@desk.animals" target="_blank" rel="noopener">TikTok</a>
+      </div>
+    </div>
+    <div class="follow-links">
+      <p class="follow-label">🔮 黒曜診断で、生年月日から占ってもらう</p>
+      <div class="follow-btns">
+        <a class="follow-link" href="https://deskanimals114510-ai.github.io/kokuyo-shindan/" target="_blank" rel="noopener">黒曜診断</a>
+      </div>
+    </div>
+    <div class="follow-links">
+      <p class="follow-label">🐾 動物の雑学・診断もチェック</p>
+      <div class="follow-btns">
+        <a class="follow-link" href="https://deskanimals114510-ai.github.io/tiny-wonders/?utm_source=lovechar64&utm_medium=referral&utm_campaign=cross_site" target="_blank" rel="noopener">Tiny Wonders</a>
+      </div>
+    </div>
+  </section>
+
+  <footer id="site-footer" class="site-footer">
+    <p>本診断はエンタメ目的のオリジナルコンテンツで、MBTI(Myers-Briggs Type Indicator)の考え方を参考にした独自基準の診断です。The Myers & Briggs Foundation等の公式機関とは提携しておらず、挿絵はAI画像生成です。科学的な心理診断や実際の心理検査に代わるものではありません。</p>
+    <p>本診断は名前・生年月日等の個人情報の入力を求めません。回答内容はすべてお使いの端末内で処理され、サーバーへの送信・保存は一切行いません。なお、アクセス解析(Googleアナリティクス)は行っており、閲覧したページの情報が計測されます。また、Google Fontsの読み込み時にお使いのIPアドレスがGoogleに送信されます。</p>
+    <p><a href="https://deskanimals114510-ai.github.io/personality-type-quiz/" style="color:var(--primary-dark);font-weight:700;">MBTI性格・恋愛・仕事タイプ診断はこちら</a></p>
+  </footer>
+
+</main>
+<script src="script.js"></script>
+</body>
+</html>

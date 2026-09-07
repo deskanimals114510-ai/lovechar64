@@ -1,0 +1,961 @@
+:root {
+  --bg1: #ffe9f3;
+  --bg2: #f4e9ff;
+  --bg3: #fff6e9;
+  --card-bg: #ffffff;
+  --primary: #c73d70;
+  --primary-dark: #a8305c;
+  --accent2: #7d4fc4;
+  --accent3: #ffcf7a;
+  --mint: #7ed9c9;
+  --text: #55404f;
+  --text-sub: #7d6678;
+  --border: #ffe3ee;
+  --shadow-soft: 0 10px 30px rgba(220, 130, 170, 0.16);
+  --shadow-lift: 0 16px 40px rgba(220, 130, 170, 0.24);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: "Zen Maru Gothic", "Hiragino Sans", "Yu Gothic", sans-serif;
+  background:
+    radial-gradient(circle at 15% 8%, rgba(255,255,255,0.6) 0, transparent 2px) 0 0/28px 28px,
+    linear-gradient(160deg, var(--bg1) 0%, var(--bg2) 55%, var(--bg3) 100%);
+  color: var(--text);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* ---- 背景の動くブロブ+きらめき装飾 ---- */
+.bg-blobs {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(70px);
+  opacity: 0.55;
+  animation: drift 18s ease-in-out infinite alternate;
+}
+.blob-1 { width: 340px; height: 340px; background: #ffc2dd; top: -90px; left: -90px; }
+.blob-2 { width: 300px; height: 300px; background: #dcc4ff; bottom: -70px; right: -70px; animation-delay: -6s; }
+.blob-3 { width: 260px; height: 260px; background: #ffe3ae; top: 42%; left: 58%; animation-delay: -11s; }
+.blob-4 { width: 220px; height: 220px; background: #bdeee2; top: 68%; left: 4%; animation-delay: -3s; }
+
+@keyframes drift {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(30px, 40px) scale(1.15); }
+}
+
+.sparkles { position: fixed; inset: 0; z-index: 0; overflow: hidden; pointer-events: none; }
+.sparkle {
+  position: absolute;
+  animation: twinkle 4.5s ease-in-out infinite;
+  opacity: 0;
+  filter: drop-shadow(0 2px 6px rgba(255,143,179,0.35));
+}
+.sparkle:nth-child(1)  { top: 8%;  left: 12%; font-size: 1.1rem; animation-delay: 0s; }
+.sparkle:nth-child(2)  { top: 18%; left: 82%; font-size: 0.9rem; animation-delay: 0.7s; }
+.sparkle:nth-child(3)  { top: 32%; left: 6%;  font-size: 1.3rem; animation-delay: 1.4s; }
+.sparkle:nth-child(4)  { top: 46%; left: 90%; font-size: 1rem;   animation-delay: 2.1s; }
+.sparkle:nth-child(5)  { top: 62%; left: 15%; font-size: 1.2rem; animation-delay: 2.8s; }
+.sparkle:nth-child(6)  { top: 74%; left: 85%; font-size: 1rem;   animation-delay: 0.4s; }
+.sparkle:nth-child(7)  { top: 86%; left: 30%; font-size: 1.1rem; animation-delay: 1.8s; }
+.sparkle:nth-child(8)  { top: 4%;  left: 55%; font-size: 0.9rem; animation-delay: 3.3s; }
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0; transform: translateY(6px) scale(0.7) rotate(0deg); }
+  50%      { opacity: 0.85; transform: translateY(-6px) scale(1.05) rotate(12deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .blob, .sparkle { animation: none; }
+  .sparkle { opacity: 0.6; }
+  html { scroll-behavior: auto; }
+}
+
+#app {
+  position: relative;
+  z-index: 1;
+  max-width: 480px;
+  margin: 0 auto;
+  height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.screen { display: none; flex-direction: column; min-height: 0; }
+.screen.active { display: flex; flex: none; }
+
+/* チャット画面(#screen-chat)だけは内部スクロールコンテナとして#appの固定高さ(100dvh)
+   いっぱいに広がる必要がある(質問を重ねてもページ全体が伸び続けないようにするため)。
+   それ以外の画面(スタート・結果・types/配下の各解説ページ等、汎用の.screen.activeを使う
+   全画面)はflex:noneのまま、コンテンツの実高さで自然に伸びる通常のページスクロールに任せる。
+   以前は全画面に一律flex:1 + min-height:0を適用しており、チャット画面の無限伸長バグは
+   直ったが、その副作用でスタート画面・types配下の解説ページ等、実コンテンツがビューポートより
+   長い画面で#appの固定高さからあふれてフッターと重なる回帰が本番で発生していた
+   (2026-09-05発見・修正)。 */
+#screen-chat.active {
+  flex: 1;
+  min-height: 0;
+}
+
+.grad-text {
+  background: linear-gradient(90deg, var(--primary), var(--accent2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.eyebrow {
+  display: inline-block;
+  font-family: "Poppins", sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--primary);
+  margin-bottom: 10px;
+}
+
+/* ---- スタート画面 ---- */
+#screen-start {
+  align-items: center;
+  justify-content: center;
+  padding: 28px 20px;
+}
+.start-card {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.6);
+  border-radius: 28px;
+  padding: 40px 26px 32px;
+  box-shadow: var(--shadow-lift);
+  text-align: center;
+}
+.lang-toggle {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+.lang-btn {
+  font-family: "Poppins", "Zen Maru Gothic", sans-serif;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.lang-btn.active {
+  background: linear-gradient(135deg, var(--primary), var(--accent2));
+  color: #fff;
+  border-color: transparent;
+}
+
+.start-emoji {
+  font-size: 2.6rem;
+  margin-bottom: 6px;
+  filter: drop-shadow(0 6px 12px rgba(255,143,179,0.4));
+}
+.start-card h1 {
+  font-size: 1.55rem;
+  font-weight: 900;
+  margin: 4px 0 14px;
+  line-height: 1.5;
+}
+.start-card .lead {
+  color: var(--text-sub);
+  line-height: 1.75;
+  margin-bottom: 18px;
+  font-size: 0.94rem;
+}
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 26px;
+}
+.badge {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  background: linear-gradient(135deg, #efe9ff, #fdeaf3);
+  border: 1px solid var(--border);
+  padding: 5px 12px;
+  border-radius: 999px;
+}
+.start-card .sub {
+  font-size: 0.78rem;
+  color: var(--text-sub);
+  margin: 16px 0 0;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--accent2));
+  color: #fff;
+  border: none;
+  padding: 16px 28px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 1.02rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(255, 143, 179, 0.45);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  width: 100%;
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 30px rgba(255, 143, 179, 0.55); }
+.btn-primary:active { transform: translateY(0); }
+
+.btn-secondary {
+  background: rgba(255,255,255,0.6);
+  color: var(--primary-dark);
+  border: 2px solid var(--primary);
+  padding: 13px 28px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.96rem;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 10px;
+  transition: background 0.15s ease;
+}
+.btn-secondary:hover { background: #fff; }
+
+/* ---- チャット画面 ---- */
+.chat-header {
+  padding: 16px 18px 12px;
+  background: rgba(255, 240, 247, 0.78);
+  backdrop-filter: blur(10px);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  border-bottom: 1px solid rgba(255,255,255,0.5);
+}
+.chat-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+.block-label {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  background: #ffe3ee;
+  padding: 4px 12px;
+  border-radius: 999px;
+  transition: background 0.3s ease, color 0.3s ease;
+}
+.chat-lang-toggle {
+  display: flex;
+  gap: 4px;
+  flex: none;
+}
+.lang-btn-mini {
+  font-family: "Poppins", "Zen Maru Gothic", sans-serif;
+  font-size: 0.62rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: #fff;
+  color: var(--text-sub);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.lang-btn-mini.active {
+  background: linear-gradient(135deg, var(--primary), var(--accent2));
+  color: #fff;
+  border-color: transparent;
+}
+.progress-bar {
+  height: 8px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.06);
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--accent2));
+  width: 0%;
+  border-radius: 999px;
+  transition: width 0.35s cubic-bezier(.4,0,.2,1);
+}
+.progress-text {
+  display: block;
+  font-family: "Poppins", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-sub);
+  margin-top: 5px;
+  text-align: right;
+}
+
+.chat-log {
+  flex: 1;
+  min-height: 0;
+  padding: 18px 16px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+
+.bubble-row { display: flex; align-items: flex-end; gap: 8px; max-width: 100%; }
+.bubble-row.user { justify-content: flex-end; }
+
+.avatar {
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary), var(--accent2));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 10px rgba(255,143,179,0.4);
+}
+
+.bubble {
+  max-width: 78%;
+  padding: 13px 17px;
+  border-radius: 20px;
+  line-height: 1.6;
+  font-size: 0.95rem;
+  animation: pop-in 0.28s cubic-bezier(.34,1.56,.64,1);
+}
+.bubble.ai {
+  background: #ffffff;
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 6px;
+  box-shadow: 0 4px 14px rgba(90,70,160,0.08);
+}
+.bubble.user {
+  background: linear-gradient(135deg, var(--primary), var(--accent2));
+  color: #fff;
+  border-bottom-right-radius: 6px;
+  box-shadow: 0 6px 16px rgba(255,143,179,0.35);
+  font-size: 0.86rem;
+}
+
+@keyframes pop-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.chat-options {
+  padding: 10px 16px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+.option-btn {
+  background: #ffffff;
+  border: 2px solid var(--border);
+  color: var(--text);
+  padding: 13px 16px;
+  border-radius: 16px;
+  font-family: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+  box-shadow: 0 2px 8px rgba(90,70,160,0.05);
+}
+.option-btn:hover { border-color: var(--primary); box-shadow: 0 6px 16px rgba(255,143,179,0.2); }
+.option-btn:active { transform: scale(0.98); }
+.option-num {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: "Poppins", sans-serif;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #efe9ff, #fdeaf3);
+  color: var(--primary-dark);
+}
+.option-text { line-height: 1.45; }
+
+/* ---- 結果画面 ---- */
+#screen-result {
+  padding: 26px 18px 36px;
+}
+.result-header { text-align: center; margin-bottom: 22px; }
+.result-title {
+  font-size: 1.4rem;
+  font-weight: 900;
+  margin: 4px 0 0;
+}
+.result-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.result-card {
+  --accent: #b892ff;
+  background: rgba(255,255,255,0.85);
+  backdrop-filter: blur(10px);
+  border-radius: 22px;
+  padding: 24px 22px;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(255,255,255,0.7);
+  border-top: 5px solid var(--accent);
+  position: relative;
+  opacity: 0;
+  animation: card-in 0.5s ease forwards;
+}
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+.card-icon {
+  font-size: 2.3rem;
+  margin-bottom: 6px;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.12));
+}
+.result-card .cat-name {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin: 0 0 4px;
+}
+.result-card .type-name {
+  font-family: "Poppins", "Zen Maru Gothic", sans-serif;
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.result-card .mbti-code {
+  font-family: "Poppins", sans-serif;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-sub);
+  margin-bottom: 12px;
+  letter-spacing: 0.05em;
+}
+.result-card .rarity-line {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  background: #ffe3ee;
+  border-radius: 999px;
+  padding: 3px 12px;
+  margin-bottom: 12px;
+}
+.result-card .desc {
+  font-size: 0.9rem;
+  line-height: 1.75;
+  color: var(--text);
+}
+
+.lucky-item {
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fff4d6, #ffe8ef);
+  border: none;
+  box-shadow: 0 6px 16px rgba(255, 179, 71, 0.22);
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.lucky-item:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(255,179,71,0.38); }
+.lucky-emoji {
+  font-size: 1.4rem;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+  overflow: hidden;
+}
+.lucky-emoji img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.lucky-text { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.lucky-bridge {
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--text-sub);
+  margin-top: 10px;
+  font-style: italic;
+}
+.lucky-label {
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #d18b2a;
+  letter-spacing: 0.02em;
+}
+.lucky-name {
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.lucky-price {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #2f9e6e;
+  background: #eafaf0;
+  border-radius: 6px;
+  padding: 1px 7px;
+  margin-top: 1px;
+}
+.lucky-arrow {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #ffb347, #ff8fb3);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  box-shadow: 0 3px 8px rgba(255,143,179,0.4);
+}
+.result-card-preview {
+  margin-bottom: 22px;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 14px 34px rgba(120, 90, 130, 0.22);
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.4);
+}
+.result-card-preview img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.result-card-preview-hint {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-sub);
+  margin: -14px 0 24px;
+}
+.result-card-preview-hint-link {
+  display: inline-block;
+  color: var(--primary-dark);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.result-card-preview-hint-link:hover,
+.result-card-preview-hint-link:focus-visible {
+  color: var(--primary);
+}
+#result-save-actions {
+  scroll-margin-top: 16px;
+}
+.lang-note {
+  text-align: center;
+  font-size: 0.7rem;
+  color: var(--text-sub);
+  margin: 6px 0 0;
+}
+
+.result-actions {
+  margin-top: 28px;
+}
+.result-actions-card {
+  margin-top: 14px;
+}
+.result-actions-card .btn-secondary {
+  font-size: 0.88rem;
+  padding: 11px 22px;
+  opacity: 0.9;
+}
+
+/* トレンド追随機能(恋愛キャラ診断)を、下に並ぶ他のシェア導線に埋もれさせないための
+   軽いアクセント(2026-09-05、5名パネルレビューでの発見性の低さ指摘への対応) */
+.result-actions-card--trend {
+  border: 1.5px dashed var(--primary-dark);
+  border-radius: 16px;
+  padding: 12px 10px 4px;
+}
+.trend-badge {
+  display: inline-block;
+  font-size: 0.66rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--primary-dark);
+  border-radius: 999px;
+  padding: 2px 9px;
+  margin-right: 6px;
+  vertical-align: middle;
+  letter-spacing: 0.03em;
+}
+
+.btn-line {
+  background: rgba(6, 199, 85, 0.08);
+  border-color: #06c755;
+  color: #06c755;
+}
+.btn-line:hover { background: rgba(6, 199, 85, 0.16); }
+
+.hub-cta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, rgba(255,143,179,0.14), rgba(184,146,255,0.14));
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.hub-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 22px rgba(120,90,130,0.18); }
+.hub-cta-emoji { font-size: 1.6rem; flex: none; }
+.hub-cta-text { flex: 1; display: flex; flex-direction: column; gap: 2px; text-align: left; }
+.hub-cta-title { font-size: 0.92rem; font-weight: 700; color: var(--text); }
+.hub-cta-sub { font-size: 0.76rem; color: var(--text); opacity: 0.75; }
+.hub-cta-arrow { font-size: 1.3rem; font-weight: 700; color: var(--primary-dark); flex: none; }
+
+.follow-links {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+.follow-label {
+  font-size: 0.74rem;
+  color: var(--text-sub);
+  margin: 0 0 8px;
+}
+.follow-btns {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+.follow-link {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  background: #fff;
+  border: 1.5px solid var(--border);
+  padding: 6px 16px;
+  border-radius: 999px;
+  text-decoration: none;
+}
+.follow-link:hover { border-color: var(--primary); }
+
+.site-footer {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 18px 20px 32px;
+  position: relative;
+  z-index: 1;
+}
+/* 診断(チャット)進行中は免責・アフィリエイト開示・タイプ一覧リンクの離脱導線を隠す。
+   回答直後にこれらが視界に入り続け離脱を誘発していたため(結果画面・スタート画面では従来通り表示)。 */
+#screen-chat.active ~ .site-footer {
+  display: none;
+}
+.site-footer p {
+  font-size: 0.68rem;
+  line-height: 1.6;
+  color: var(--text-sub);
+  margin: 0 0 8px;
+  text-align: center;
+}
+
+.lucky-pr-tag {
+  display: inline-block;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #d18b2a;
+  background: #fff3d6;
+  border-radius: 6px;
+  padding: 1px 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+@media (min-width: 520px) {
+  .start-card { padding: 48px 40px 40px; }
+}
+
+/* ---- タイプ別解説ページ(/types/) ---- */
+.type-page { padding: 26px 18px 36px; }
+.type-page-hero-img {
+  display: block;
+  width: 120px;
+  height: 180px;
+  object-fit: cover;
+  border-radius: 20px;
+  margin: 0 auto 12px;
+  box-shadow: 0 10px 24px rgba(120, 90, 130, 0.22);
+  /* Pinterest配布用に彩度高めで作った動物イラストと、サイト全体のパステルトーンとの
+     視覚差を緩和する軽いフィルタ(絵柄自体は変えない、2026-09-05追加) */
+  filter: saturate(0.88) brightness(1.04);
+}
+.type-page-sub {
+  font-size: 0.82rem;
+  color: var(--text-sub);
+  margin: 6px 0 0;
+}
+.type-page-card .cat-name { display: block; }
+.type-page-note {
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: var(--text-sub);
+  background: rgba(255,255,255,0.6);
+  border-radius: 16px;
+  padding: 14px 16px;
+  margin: 20px 0;
+}
+.type-nav {
+  margin: 28px 0 8px;
+  background: rgba(255,255,255,0.6);
+  border-radius: 20px;
+  padding: 16px;
+}
+.type-nav-label {
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  margin: 0 0 10px;
+}
+.type-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+.type-nav-link {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+  font-family: "Poppins", sans-serif;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text);
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 8px 2px;
+}
+.type-nav-link.active {
+  background: linear-gradient(135deg, var(--primary), var(--accent2));
+  color: #fff;
+  border-color: transparent;
+}
+.type-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.type-hub-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  text-decoration: none;
+  color: var(--text);
+  background: rgba(255,255,255,0.85);
+  border-radius: 18px;
+  padding: 18px 10px;
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(255,255,255,0.7);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.type-hub-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+.type-hub-emoji { font-size: 1.8rem; }
+.type-hub-code {
+  font-family: "Poppins", sans-serif;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+.type-hub-title {
+  font-size: 0.72rem;
+  color: var(--text-sub);
+  line-height: 1.4;
+}
+
+/* ---- 何デレ診断(スピンオフ、nandere.html/nandere.js専用) ---- */
+.nandere-back-link {
+  text-align: center;
+  margin-top: 18px;
+}
+.nandere-back-link a {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+  text-decoration: none;
+}
+.nandere-back-link a:hover { text-decoration: underline; }
+
+.nandere-main-card {
+  text-align: center;
+  padding-top: 30px;
+}
+.nandere-emoji-circle {
+  font-size: 3.4rem;
+  line-height: 1;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 6px 14px rgba(0,0,0,0.14));
+}
+.nandere-type-name {
+  font-family: "Poppins", "Zen Maru Gothic", sans-serif;
+  font-size: 1.7rem;
+  font-weight: 900;
+  color: var(--accent, var(--primary-dark));
+  margin-bottom: 4px;
+}
+.nandere-nickname {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.nandere-tagline {
+  font-size: 0.86rem;
+  color: var(--text-sub);
+  font-style: italic;
+  margin-bottom: 18px;
+}
+.purity-wrap { margin: 0 auto 18px; max-width: 320px; }
+.purity-bar {
+  height: 12px;
+  background: var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.06);
+}
+.purity-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent, var(--primary)), var(--primary));
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(.4,0,.2,1);
+}
+.purity-label {
+  margin: 8px 0 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--accent, var(--primary-dark));
+}
+.rarity-badge {
+  display: inline-block;
+  margin: 0 auto 18px;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(135deg, #ff8fb3, #b892ff, #7ed9c9, #ffcf7a);
+}
+.nandere-main-card .desc {
+  text-align: left;
+  font-size: 0.9rem;
+  line-height: 1.8;
+  color: var(--text);
+}
+
+.compat-card {
+  border-top-color: var(--accent2);
+  text-align: left;
+}
+.compat-heading {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 12px;
+}
+.compat-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.compat-emoji {
+  font-size: 2rem;
+  flex: none;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+}
+.compat-text { display: flex; flex-direction: column; gap: 2px; }
+.compat-name {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text);
+}
+.compat-percent {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--primary-dark);
+}
+.compat-note {
+  font-size: 0.86rem;
+  line-height: 1.7;
+  color: var(--text-sub);
+  margin: 0;
+}
+
+.nandere-promo {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+.nandere-promo-label {
+  font-size: 0.74rem;
+  color: var(--text-sub);
+  margin: 0 0 8px;
+}
