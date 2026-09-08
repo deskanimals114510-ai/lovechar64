@@ -1,64 +1,27 @@
 // ===== 恋愛キャラ診断64(単独サイト版) =====
 // personality-type-quiz(MBTI診断)の恋愛キャラ診断機能を、専用の短い導線として
-// 独立サイト化したもの(2026-09-08)。判定に必要な「性格タイプ(気質グループ判定用)」
-// 「恋愛タイプ(64キャラ選択用)」の2ブロック・計20問のみを使用し、無関係な仕事編10問は
-// 含まない。EN版は用意しない(キャラ設定文がJK毒舌文体のためJapanese限定、本家と同じ判断)。
-// 設問データ・スコアリングロジック・カード描画ロジックはpersonality-type-quizのscript.jsから
-// そのまま流用(新規設問設計・新規ロジックは無し、信頼性のあるコードの再利用に限定)。
+// 独立サイト化したもの(2026-09-08)。当初は性格編10問+恋愛編10問=20問構成だったが、
+// 「20問は多い」というユーザー指摘を受け、2026-09-09に8問構成へ再設計(フラット・分岐なし)。
+//
+// 判定に必要な軸を最小限に絞った設計:
+// - 気質グループ(NT/NF/SJ/SP)の判定にはS/N軸+(T/F軸かJ/P軸のどちらか一方)だけで足りる
+//   (Keirsey気質モデル: NT=N+T, NF=N+F, SJ=S+J, SP=S+P。E/I軸はグループ判定に無関係)
+// - 判定に「使わない方」が事前にはわからないため、S/N軸2問+T/F軸1問+J/P軸1問を
+//   常に全問聞いておき、結果計算時(computeGroupKey)にS/N軸の勝敗に応じてT/F軸か
+//   J/P軸のどちらか一方だけを使う(使わない方の回答はそのまま無視するだけ)。
+//   ※当初は「S/N軸を先に聞いてから使う方だけ追加で聞く」適応型(分岐)フローで実装したが、
+//   5名レビューの懐疑派から「たった2問減らすためだけに状態機械の複雑さ・バグ面を増やして
+//   いる、不釣り合い」との指摘を受け、同日中にこのフラット構成へ作り直した。
+// - 恋愛タイプ(64キャラ選択用)は4軸(E/I・S/N・T/F・J/P)全てが必要なため、各軸1問ずつ
+//   (既存の恋愛編10問から代表的な1問を軸ごとに選定)の計4問
+// - 合計 4(性格用、うち1問は結果計算で使われない)+4(恋愛)=8問、常に固定
+//
+// 設問データ・スコアリングロジック・カード描画ロジックはpersonality-type-quiz(本家)の
+// script.jsからそのまま流用(新規設問の書き起こしは無し、信頼性のあるコードの再利用に限定)。
+// 8問化によるタイプ分布の偏りは、本家が2026-08-09に4000回シミュレーションで検証した
+// のと同じ手法で別途検証済み(詳細は[[project_lovechar64_standalone_site]]メモリ参照)。
 
-const QUESTIONS = [
-  {
-    "block": "personality",
-    "text": "あなたは、休日に誰からも予定を誘われなかったとき、どのように過ごすことが多いですか?",
-    "opts": [
-      {
-        "text": "一人の時間を大切にして、家でゆっくり過ごす",
-        "axis": "I",
-        "weight": 2
-      },
-      {
-        "text": "気心の知れた一人か二人だけを誘って会う",
-        "axis": "I",
-        "weight": 1
-      },
-      {
-        "text": "SNSやグループに声をかけて、誰かと予定を作る",
-        "axis": "E",
-        "weight": 1
-      },
-      {
-        "text": "自分から積極的に人を集めて、賑やかに過ごす",
-        "axis": "E",
-        "weight": 2
-      }
-    ]
-  },
-  {
-    "block": "personality",
-    "text": "あなたは、初対面の人と話すとき、どのように振る舞うことが多いですか?",
-    "opts": [
-      {
-        "text": "相手の話をじっくり聞く側に徹する",
-        "axis": "I",
-        "weight": 2
-      },
-      {
-        "text": "聞かれたことには答えるが、自分からはあまり話さない",
-        "axis": "I",
-        "weight": 1
-      },
-      {
-        "text": "相手に質問を投げかけながら会話を広げる",
-        "axis": "E",
-        "weight": 1
-      },
-      {
-        "text": "自分から積極的に話しかけ、場を盛り上げる",
-        "axis": "E",
-        "weight": 2
-      }
-    ]
-  },
+const PERSONALITY_SN = [
   {
     "block": "personality",
     "text": "あなたは、新しい物事を考えるとき、どのようなアプローチを取りますか?",
@@ -110,7 +73,10 @@ const QUESTIONS = [
         "weight": 2
       }
     ]
-  },
+  }
+];
+
+const PERSONALITY_TF = [
   {
     "block": "personality",
     "text": "あなたは、友人から悩みを相談されたとき、どのように対応しますか?",
@@ -136,33 +102,10 @@ const QUESTIONS = [
         "weight": 2
       }
     ]
-  },
-  {
-    "block": "personality",
-    "text": "あなたは、誰かと意見が対立したとき、何を優先しますか?",
-    "opts": [
-      {
-        "text": "感情よりも論理的な正しさを優先する",
-        "axis": "T",
-        "weight": 2
-      },
-      {
-        "text": "事実やデータに基づいて話を進めようとする",
-        "axis": "T",
-        "weight": 1
-      },
-      {
-        "text": "相手の立場や気持ちも考慮しようとする",
-        "axis": "F",
-        "weight": 1
-      },
-      {
-        "text": "その場の空気や人間関係を何より優先する",
-        "axis": "F",
-        "weight": 2
-      }
-    ]
-  },
+  }
+];
+
+const PERSONALITY_JP = [
   {
     "block": "personality",
     "text": "あなたは、旅行に行くとき、計画をどのように立てますか?",
@@ -188,85 +131,10 @@ const QUESTIONS = [
         "weight": 2
       }
     ]
-  },
-  {
-    "block": "personality",
-    "text": "あなたの普段の部屋は、どのような状態であることが多いですか?",
-    "opts": [
-      {
-        "text": "常に整理整頓されていないと落ち着かない",
-        "axis": "J",
-        "weight": 2
-      },
-      {
-        "text": "ある程度は片付いた状態を保つようにしている",
-        "axis": "J",
-        "weight": 1
-      },
-      {
-        "text": "多少散らかっていても、あまり気にならない",
-        "axis": "P",
-        "weight": 1
-      },
-      {
-        "text": "必要なものが出しっぱなしでも平気なタイプだ",
-        "axis": "P",
-        "weight": 2
-      }
-    ]
-  },
-  {
-    "block": "personality",
-    "text": "あなたは、大人数の集まりに参加すると、どのように過ごすことが多いですか?",
-    "opts": [
-      {
-        "text": "気づけば静かな隅の方で過ごしている",
-        "axis": "I",
-        "weight": 2
-      },
-      {
-        "text": "話しかけられれば応じるが、自分からは動かない",
-        "axis": "I",
-        "weight": 1
-      },
-      {
-        "text": "気になる相手には自分から話しかけに行く",
-        "axis": "E",
-        "weight": 1
-      },
-      {
-        "text": "気づけば輪の中心で場を盛り上げている",
-        "axis": "E",
-        "weight": 2
-      }
-    ]
-  },
-  {
-    "block": "personality",
-    "text": "あなたは、締め切りのある作業に対して、どのように取り組みますか?",
-    "opts": [
-      {
-        "text": "早めに終わらせて、余裕を持って安心したい",
-        "axis": "J",
-        "weight": 2
-      },
-      {
-        "text": "余裕を持って進めたいと思っている",
-        "axis": "J",
-        "weight": 1
-      },
-      {
-        "text": "追い込まれてから本気を出すことが多い",
-        "axis": "P",
-        "weight": 1
-      },
-      {
-        "text": "直前になるほど集中力が高まり、力を発揮する",
-        "axis": "P",
-        "weight": 2
-      }
-    ]
-  },
+  }
+];
+
+const LOVE_QUESTIONS = [
   {
     "block": "love",
     "text": "あなたは、好きな人をデートに誘うとしたら、どのようなスタイルを好みますか?",
@@ -321,32 +189,6 @@ const QUESTIONS = [
   },
   {
     "block": "love",
-    "text": "あなたは、好きな人ができたとき、まず何を考えますか?",
-    "opts": [
-      {
-        "text": "まず現実的に自分と釣り合うかどうかを考える",
-        "axis": "S",
-        "weight": 2
-      },
-      {
-        "text": "まずは相手の生活や状況を知ろうとする",
-        "axis": "S",
-        "weight": 1
-      },
-      {
-        "text": "一緒にいる場面をなんとなく想像してみる",
-        "axis": "N",
-        "weight": 1
-      },
-      {
-        "text": "まず相手と築く未来のイメージを思い描く",
-        "axis": "N",
-        "weight": 2
-      }
-    ]
-  },
-  {
-    "block": "love",
     "text": "あなたは、恋人とケンカをしたとき、まずどう考えますか?",
     "opts": [
       {
@@ -366,32 +208,6 @@ const QUESTIONS = [
       },
       {
         "text": "まず相手の気持ちに寄り添うことを最優先する",
-        "axis": "F",
-        "weight": 2
-      }
-    ]
-  },
-  {
-    "block": "love",
-    "text": "あなたは、恋人との記念日について、どのように考えていますか?",
-    "opts": [
-      {
-        "text": "日付そのものに、あまり特別な意味は感じない",
-        "axis": "T",
-        "weight": 2
-      },
-      {
-        "text": "覚えてはいるが、大げさに祝う必要はないと思う",
-        "axis": "T",
-        "weight": 1
-      },
-      {
-        "text": "できれば覚えていて、ささやかにでも祝いたい",
-        "axis": "F",
-        "weight": 1
-      },
-      {
-        "text": "絶対に忘れず、しっかりお祝いしたいと思う",
         "axis": "F",
         "weight": 2
       }
@@ -422,112 +238,9 @@ const QUESTIONS = [
         "weight": 2
       }
     ]
-  },
-  {
-    "block": "love",
-    "text": "あなたは、恋人との連絡の頻度について、どう感じますか?",
-    "opts": [
-      {
-        "text": "毎日決まった時間にやり取りできると安心する",
-        "axis": "J",
-        "weight": 2
-      },
-      {
-        "text": "ある程度決まったペースがあると落ち着く",
-        "axis": "J",
-        "weight": 1
-      },
-      {
-        "text": "連絡は気が向いたときにできればいいと思う",
-        "axis": "P",
-        "weight": 1
-      },
-      {
-        "text": "頻度を決めず、自然な間隔でのやり取りを好む",
-        "axis": "P",
-        "weight": 2
-      }
-    ]
-  },
-  {
-    "block": "love",
-    "text": "あなたは、恋人との時間の過ごし方について、何を求めますか?",
-    "opts": [
-      {
-        "text": "二人きりで、静かに過ごす時間に満たされる",
-        "axis": "I",
-        "weight": 2
-      },
-      {
-        "text": "基本は二人で、たまに誰かを交えるのもいいと思う",
-        "axis": "I",
-        "weight": 1
-      },
-      {
-        "text": "友人を交えた集まりも一緒に楽しみたい",
-        "axis": "E",
-        "weight": 1
-      },
-      {
-        "text": "色んな場所や人と一緒に、活動的に過ごしたい",
-        "axis": "E",
-        "weight": 2
-      }
-    ]
-  },
-  {
-    "block": "love",
-    "text": "あなたが誰かを好きになる決め手は、どちらに近いですか?",
-    "opts": [
-      {
-        "text": "一緒にいて安心できる、積み重ねてきた実績",
-        "axis": "S",
-        "weight": 2
-      },
-      {
-        "text": "日々の些細な優しさや気遣い",
-        "axis": "S",
-        "weight": 1
-      },
-      {
-        "text": "一緒にいるときの、なんとなく心地よい空気感",
-        "axis": "N",
-        "weight": 1
-      },
-      {
-        "text": "言葉では説明できない、直感的な相性",
-        "axis": "N",
-        "weight": 2
-      }
-    ]
-  },
-  {
-    "block": "love",
-    "text": "あなたは、恋人と将来の約束をするとき、どうしたいですか?",
-    "opts": [
-      {
-        "text": "タイミングも段取りも、きっちり考えてから進めたい",
-        "axis": "J",
-        "weight": 2
-      },
-      {
-        "text": "大事な約束は、ある程度計画的に進めたい",
-        "axis": "J",
-        "weight": 1
-      },
-      {
-        "text": "タイミングが来たら自然に決まればいいと思う",
-        "axis": "P",
-        "weight": 1
-      },
-      {
-        "text": "約束ごとは、流れに身を任せたいと思う",
-        "axis": "P",
-        "weight": 2
-      }
-    ]
   }
 ];
+
 
 const BLOCK_META = {
   personality: { label: '性格編', color: '#f5b942', textColor: '#8a6d1f' },
@@ -923,7 +636,17 @@ function loveCharRarityLine(pct) {
 let currentIndex = 0;
 let answers = []; // { block, axis, weight }
 let isSharedView = false;
-let lastResult = null; // { personality, love } 各4文字のMBTIタイプコード
+let lastResult = null; // { groupKey(NT/NF/SJ/SP), love(4文字) }
+
+// 8問固定・分岐なしのフラット構成(S/N軸2問+T/F軸1問+J/P軸1問+恋愛4軸各1問)。
+// 気質グループの判定にはS/N軸+(T/F軸かJ/P軸のどちらか一方)だけで足りるため、当初は
+// 「S/N軸を先に聞いてから使う方だけ追加で聞く」適応型(分岐)フローで実装したが、
+// 5名レビューの懐疑派から「たった2問減らすためだけに状態機械の複雑さ・バグ面を
+// 増やしている、不釣り合い」との指摘を受け2026-09-09に撤回。T/F軸・J/P軸を両方
+// 常に1問ずつ聞いておき、結果計算時にS/N軸の勝敗に応じてどちらか一方だけを使う
+// (使わない方の回答は単に無視する)ことで、分岐なしの単純な配列インデックス走査
+// のまま同じ8問・同じ気質グループ判定ロジックを実現できる。
+const QUESTIONS = [...PERSONALITY_SN, ...PERSONALITY_TF, ...PERSONALITY_JP, ...LOVE_QUESTIONS];
 
 // ===== DOM =====
 const screens = {
@@ -1023,48 +746,58 @@ function selectOption(q, opt) {
 
 const AXIS_PAIRS = [['E', 'I'], ['S', 'N'], ['T', 'F'], ['J', 'P']];
 
+// 指定ブロック(personality/love)・指定軸ペアの回答だけを見て勝者の軸を決める。
 // 同数の場合は毎回ランダムに決める(personality-type-quiz本家と同じロジック、4000回
-// シミュレーションで偏りがないことを確認済みのため踏襲)
-function computeType(block) {
-  const blockAnswers = answers.filter(a => a.block === block);
-  const scores = {};
-  blockAnswers.forEach(a => { scores[a.axis] = (scores[a.axis] || 0) + a.weight; });
+// シミュレーションで偏りがないことを確認済みのため踏襲)。恋愛編は1軸1問のため実質的に
+// 同数(タイ)は起こらないが、ロジックは性格編(1軸2問、タイあり得る)と共通化している。
+function computeAxisWinner(block, [first, second]) {
+  const relevant = answers.filter(a => a.block === block && (a.axis === first || a.axis === second));
+  const s1 = relevant.filter(a => a.axis === first).reduce((sum, a) => sum + a.weight, 0);
+  const s2 = relevant.filter(a => a.axis === second).reduce((sum, a) => sum + a.weight, 0);
+  if (s1 === s2) return Math.random() < 0.5 ? first : second;
+  return s1 > s2 ? first : second;
+}
 
-  let type = '';
-  AXIS_PAIRS.forEach(([first, second]) => {
-    const s1 = scores[first] || 0;
-    const s2 = scores[second] || 0;
-    if (s1 === s2) {
-      type += Math.random() < 0.5 ? first : second;
-    } else {
-      type += s1 > s2 ? first : second;
-    }
-  });
-  return type;
+// 気質グループ(NT/NF/SJ/SP)はKeirseyモデルに基づき S/N軸 + (N寄りならT/F軸、S寄りならJ/P軸)
+// の2軸だけで決まる(E/I軸は無関係)。T/F軸・J/P軸は両方とも常に1問ずつ聞いているため、
+// ここではS/N軸の勝敗に応じて使う方だけを読み、使わない方は無視するだけでよい。
+function computeGroupKey() {
+  const sn = computeAxisWinner('personality', ['S', 'N']);
+  if (sn === 'N') {
+    const tf = computeAxisWinner('personality', ['T', 'F']);
+    return tf === 'T' ? 'NT' : 'NF';
+  }
+  const jp = computeAxisWinner('personality', ['J', 'P']);
+  return jp === 'J' ? 'SJ' : 'SP';
+}
+
+function computeLoveType() {
+  return AXIS_PAIRS.map(pair => computeAxisWinner('love', pair)).join('');
 }
 
 function showResult() {
   showScreen('result');
   lastResult = {
-    personality: computeType('personality'),
-    love: computeType('love'),
+    groupKey: computeGroupKey(),
+    love: computeLoveType(),
   };
   renderLoveCharCardPreview(lastResult);
-  trackEvent('quiz_complete', { love_type: lastResult.love, group_key: TEMPERAMENT[lastResult.personality] });
+  trackEvent('quiz_complete', { love_type: lastResult.love, group_key: lastResult.groupKey });
 }
 
-// 結果URL(?r=符号、personality4文字+love4文字=8文字)
+// 結果URL(?r=符号、groupKey2文字+love4文字=6文字)
 function buildResultCode(types) {
-  return `${types.personality}${types.love}`;
+  return `${types.groupKey}${types.love}`;
 }
 
+const GROUP_KEY_RE = /^(NT|NF|SJ|SP)$/;
 const MBTI_TYPE_RE = /^[EI][SN][TF][JP]$/;
 function decodeResultCode(code) {
-  if (!/^[A-Z]{8}$/.test(code)) return null;
-  const personality = code.slice(0, 4);
-  const love = code.slice(4, 8);
-  if (![personality, love].every(t => MBTI_TYPE_RE.test(t))) return null;
-  return { personality, love };
+  if (!/^[A-Z]{6}$/.test(code)) return null;
+  const groupKey = code.slice(0, 2);
+  const love = code.slice(2, 6);
+  if (!GROUP_KEY_RE.test(groupKey) || !MBTI_TYPE_RE.test(love)) return null;
+  return { groupKey, love };
 }
 
 function resultUrl() {
@@ -1188,7 +921,7 @@ function loadCardImage(src) {
 
 // ===== 恋愛キャラカード =====
 function buildLoveCharCardCat(types) {
-  const groupKey = TEMPERAMENT[types.personality];
+  const groupKey = types.groupKey;
   const entry = LOVECHAR64[groupKey][types.love];
   const rarityPct = getGroupRarity(groupKey);
   return {
@@ -1362,7 +1095,7 @@ async function buildLoveCharCardCanvas(types, mode) {
   if (document.fonts && document.fonts.ready) {
     try { await document.fonts.ready; } catch (e) { /* フォント読み込み待ちに失敗しても既定フォントで続行 */ }
   }
-  const groupKey = TEMPERAMENT[types.personality];
+  const groupKey = types.groupKey;
   const img = await loadCardImage(`img/lovechar64/${groupKey}_${types.love}.jpg`);
   const cat = buildLoveCharCardCat(types);
   const canvas = document.createElement('canvas');
@@ -1395,7 +1128,7 @@ async function renderLoveCharCardPreview(types) {
 
 async function downloadLoveCharCard(mode) {
   if (!lastResult) return;
-  const groupKey = TEMPERAMENT[lastResult.personality];
+  const groupKey = lastResult.groupKey;
   const btnId = mode === 'story' ? 'btn-save-lovechar-card-story' : 'btn-save-lovechar-card';
   const btn = document.getElementById(btnId);
   const original = btn.textContent;
@@ -1427,7 +1160,7 @@ async function downloadLoveCharCard(mode) {
 
 function shareLoveCharResult() {
   if (!lastResult) return;
-  const groupKey = TEMPERAMENT[lastResult.personality];
+  const groupKey = lastResult.groupKey;
   const entry = LOVECHAR64[groupKey][lastResult.love];
   const text = `恋愛キャラは「${entry.name}」でした💞\n${entry.punchline}\nあなたの恋愛キャラは?→\n※エンタメ目的の診断です\n#恋愛キャラ診断 #恋愛タイプ診断 #MBTI診断`;
   const url = encodeURIComponent(resultUrl());
@@ -1438,7 +1171,7 @@ function shareLoveCharResult() {
 
 function shareLoveCharResultLine() {
   if (!lastResult) return;
-  const groupKey = TEMPERAMENT[lastResult.personality];
+  const groupKey = lastResult.groupKey;
   const entry = LOVECHAR64[groupKey][lastResult.love];
   const text = `恋愛キャラは「${entry.name}」でした💞 あなたの恋愛キャラは?\n${resultUrl()}`;
   const shareUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(resultUrl())}&text=${encodeURIComponent(text)}`;
