@@ -978,7 +978,11 @@ function drawLoveCharCardX(ctx, img, cat) {
   });
   y += rarityFit.lines.length * rarityStep + 12;
 
-  const blurbFit = cardFitTextMultiline(ctx, cat.blurb, maxTextWidth, '500', "'Zen Maru Gothic', sans-serif", 17, 12, 7);
+  // blurbの最小フォントサイズは12→14pxに底上げ(2026-09-09、5名レビューの懐疑派・
+  // モバイル実機レンズより「ライトボックスは対症療法で、共有される画像自体の文字が
+  // 小さいのが根本原因」との指摘を受けて対応。全64件のblurbで切り詰めが起きないことを
+  // maxLines 7→8への変更とあわせて実機検証済み)
+  const blurbFit = cardFitTextMultiline(ctx, cat.blurb, maxTextWidth, '500', "'Zen Maru Gothic', sans-serif", 18, 14, 8);
   ctx.fillStyle = CARD_PAL.text;
   ctx.font = `500 ${blurbFit.size}px 'Zen Maru Gothic', sans-serif`;
   const blurbStep = blurbFit.size * 1.5;
@@ -1115,9 +1119,13 @@ async function renderLoveCharCardPreview(types) {
   try {
     const canvas = await buildLoveCharCardCanvas(types, 'x');
     const dataUrl = canvas.toDataURL('image/png');
+    const cat = buildLoveCharCardCat(types);
     const img = document.createElement('img');
     img.src = dataUrl;
-    img.alt = 'タップして拡大表示';
+    // 診断結果(キャラ名・毒舌文・決め台詞)はcanvas画像にしか描画されないため、
+    // altに実際の内容を入れないとスクリーンリーダー利用者が結果を一切知る手段がない
+    // (5名レビューのアクセシビリティ観点で重要度高として指摘、2026-09-09対応)
+    img.alt = `${cat.name}。${cat.blurb} ${cat.punchline}(タップして拡大表示)`;
     img.width = 1200;
     img.height = 630;
     img.tabIndex = 0;
@@ -1127,7 +1135,9 @@ async function renderLoveCharCardPreview(types) {
     preview.appendChild(img);
   } catch (e) {
     console.error('恋愛キャラカードプレビューの生成に失敗しました', e);
-    preview.remove();
+    // 5名レビューの操作性観点で「無言で消えるだけで何が起きたか分からない」と指摘され
+    // 対応(2026-09-09)。preview.remove()だと保存/シェアボタン群だけが浮いた状態になる。
+    preview.textContent = 'カードの生成に失敗しました。ページを再読み込みしてください。';
   }
 }
 
@@ -1135,18 +1145,31 @@ async function renderLoveCharCardPreview(types) {
 // 拡大表示ライトボックス(2026-09-09)。画像タップ→原寸に近いサイズで表示、背景/×/Escで閉じる。
 const lightboxOverlay = document.getElementById('lightbox-overlay');
 const lightboxImg = document.getElementById('lightbox-img');
+const lightboxCloseBtn = document.getElementById('lightbox-close');
+let lightboxTriggerEl = null; // 開いたきっかけの要素。閉じた時にフォーカスを戻すため保持
 function openLightbox(src) {
+  lightboxTriggerEl = document.activeElement;
   lightboxImg.src = src;
   lightboxOverlay.hidden = false;
-  document.getElementById('lightbox-close').focus();
+  lightboxCloseBtn.focus();
 }
 function closeLightbox() {
   lightboxOverlay.hidden = true;
   lightboxImg.src = '';
+  // フォーカスを開いた画像に戻す(閉じるボタンに置き去りにされたままだと、
+  // キーボード/スクリーンリーダー利用者が今どこにいるか分からなくなる。
+  // 5名レビューのアクセシビリティ観点で指摘、2026-09-09対応)
+  if (lightboxTriggerEl) lightboxTriggerEl.focus();
 }
 lightboxOverlay.addEventListener('click', (e) => { if (e.target === lightboxOverlay) closeLightbox(); });
-document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
-document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !lightboxOverlay.hidden) closeLightbox(); });
+lightboxCloseBtn.addEventListener('click', closeLightbox);
+document.addEventListener('keydown', (e) => {
+  if (lightboxOverlay.hidden) return;
+  if (e.key === 'Escape') { closeLightbox(); return; }
+  // ライトボックス内の対話可能要素は閉じるボタン1つだけのため、Tabで背景要素に
+  // フォーカスが漏れないようそこに固定する(簡易フォーカストラップ、2026-09-09追加)
+  if (e.key === 'Tab') { e.preventDefault(); lightboxCloseBtn.focus(); }
+});
 
 async function downloadLoveCharCard(mode) {
   if (!lastResult) return;
@@ -1174,10 +1197,15 @@ async function downloadLoveCharCard(mode) {
     trackEvent('save_card', { mode: mode === 'story' ? 'lovechar_story' : 'lovechar', group_key: groupKey });
   } catch (e) {
     console.error('恋愛キャラカード生成に失敗しました', e);
+    // ボタンがラベルだけ戻って「何も起きなかったように見える」との指摘(5名レビュー
+    // の操作性観点)を受け、失敗時だけ一瞬メッセージを出す(2026-09-09)
+    btn.textContent = '保存に失敗しました';
+    setTimeout(() => { btn.textContent = original; }, 2200);
+    return;
   } finally {
-    btn.textContent = original;
     btn.disabled = false;
   }
+  btn.textContent = original;
 }
 
 function shareLoveCharResult() {

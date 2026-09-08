@@ -9,7 +9,7 @@
   --accent3: #ffcf7a;
   --mint: #7ed9c9;
   --text: #55404f;
-  --text-sub: #7d6678;
+  --text-sub: #745e70; /* WCAG AA(4.5:1)を全背景で確保するため2026-09-09微調整(元#7d6678はbg2で4.44:1と僅かに未達) */
   --border: #ffe3ee;
   --shadow-soft: 0 10px 30px rgba(220, 130, 170, 0.16);
   --shadow-lift: 0 16px 40px rgba(220, 130, 170, 0.24);
@@ -558,6 +558,7 @@ body {
   box-shadow: 0 3px 8px rgba(255,143,179,0.4);
 }
 .result-card-preview {
+  position: relative;
   margin-bottom: 22px;
   border-radius: 20px;
   overflow: hidden;
@@ -573,6 +574,24 @@ body {
   width: 100%;
   height: auto;
   cursor: zoom-in;
+}
+/* タップで拡大できることが下のヒント文だけでは気づかれにくいという指摘(5名レビュー
+   の第一印象観点)を受け、画像自体にも虫眼鏡バッジを重ねる(2026-09-09追加) */
+.result-card-preview::after {
+  content: '🔍';
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.88);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.95rem;
+  box-shadow: 0 4px 10px rgba(120, 90, 130, 0.25);
+  pointer-events: none;
 }
 .result-card-preview-hint {
   text-align: center;
@@ -987,12 +1006,19 @@ body {
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
   cursor: default;
 }
+/* 狭い画面ではpaddingが相対的に大きな割合を占め、拡大表示のはずが結果画面の
+   インラインプレビューより小さく表示される逆効果が5名レビューのモバイル実機観点で
+   実測発覚(375px幅でinline339px vs lightbox327px)。paddingを詰めて確実に拡大側に
+   倒す(2026-09-09修正)。 */
+@media (max-width: 480px) {
+  .lightbox-overlay { padding: 8px; }
+}
 .lightbox-close {
   position: absolute;
   top: 18px;
   right: 20px;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   border: none;
   background: rgba(255, 255, 255, 0.92);
