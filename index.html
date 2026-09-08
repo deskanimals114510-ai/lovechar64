@@ -93,7 +93,7 @@
       <p id="result-title-el" class="result-title">恋愛キャラ <span class="grad-text">できました</span></p>
     </div>
     <div id="lovechar-card-preview" class="result-card-preview"></div>
-    <p class="result-card-preview-hint"><span>画像を長押し(スマホ)または右クリックで保存できます</span> <a href="#lovechar-save-actions" class="result-card-preview-hint-link">保存ボタンはこちら 👇</a></p>
+    <p class="result-card-preview-hint"><span>画像をタップすると拡大表示、長押し(スマホ)または右クリックで保存できます</span> <a href="#lovechar-save-actions" class="result-card-preview-hint-link">保存ボタンはこちら 👇</a></p>
     <div class="result-actions">
       <button id="btn-share-lovechar" class="btn-primary">💞 恋愛キャラをXでシェア 🚀</button>
       <button id="btn-share-lovechar-line" class="btn-secondary btn-line">LINEでシェア</button>
@@ -139,6 +139,13 @@
     <p>本診断は名前・生年月日等の個人情報の入力を求めません。回答内容はすべてお使いの端末内で処理され、サーバーへの送信・保存は一切行いません。なお、アクセス解析(Googleアナリティクス)は行っており、閲覧したページの情報が計測されます。また、Google Fontsの読み込み時にお使いのIPアドレスがGoogleに送信されます。</p>
     <p><a href="https://deskanimals114510-ai.github.io/personality-type-quiz/" class="footer-link-accent">MBTI性格・恋愛・仕事タイプ診断はこちら</a></p>
   </footer>
+
+  <!-- 結果カード拡大表示用ライトボックス(2026-09-09追加。カードプレビューが縮小表示のため
+       毒舌テキストが読みにくいという指摘を受け、画像タップで原寸に近いサイズを見られるように) -->
+  <div id="lightbox-overlay" class="lightbox-overlay" hidden role="dialog" aria-modal="true" aria-label="カード拡大表示">
+    <button id="lightbox-close" class="lightbox-close" aria-label="閉じる">×</button>
+    <img id="lightbox-img" src="" alt="">
+  </div>
 
 </main>
 <script src="script.js"></script>

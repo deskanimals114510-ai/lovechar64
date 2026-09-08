@@ -572,6 +572,7 @@ body {
   display: block;
   width: 100%;
   height: auto;
+  cursor: zoom-in;
 }
 .result-card-preview-hint {
   text-align: center;
@@ -962,4 +963,44 @@ body {
   font-size: 0.74rem;
   color: var(--text-sub);
   margin: 0 0 8px;
+}
+
+/* ===== 結果カード拡大表示用ライトボックス(2026-09-09追加) ===== */
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(40, 20, 35, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  cursor: zoom-out;
+}
+.lightbox-overlay[hidden] { display: none; }
+.lightbox-overlay img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+  cursor: default;
+}
+.lightbox-close {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--text, #55404f);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.lightbox-close:hover, .lightbox-close:focus-visible {
+  background: #fff;
 }

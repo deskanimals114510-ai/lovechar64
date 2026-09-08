@@ -1114,17 +1114,39 @@ async function renderLoveCharCardPreview(types) {
   preview.innerHTML = '';
   try {
     const canvas = await buildLoveCharCardCanvas(types, 'x');
+    const dataUrl = canvas.toDataURL('image/png');
     const img = document.createElement('img');
-    img.src = canvas.toDataURL('image/png');
-    img.alt = '';
+    img.src = dataUrl;
+    img.alt = 'タップして拡大表示';
     img.width = 1200;
     img.height = 630;
+    img.tabIndex = 0;
+    img.setAttribute('role', 'button');
+    img.addEventListener('click', () => openLightbox(dataUrl));
+    img.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(dataUrl); } });
     preview.appendChild(img);
   } catch (e) {
     console.error('恋愛キャラカードプレビューの生成に失敗しました', e);
     preview.remove();
   }
 }
+
+// カードプレビューが縮小表示のため毒舌テキストが読みにくいという指摘を受け追加した
+// 拡大表示ライトボックス(2026-09-09)。画像タップ→原寸に近いサイズで表示、背景/×/Escで閉じる。
+const lightboxOverlay = document.getElementById('lightbox-overlay');
+const lightboxImg = document.getElementById('lightbox-img');
+function openLightbox(src) {
+  lightboxImg.src = src;
+  lightboxOverlay.hidden = false;
+  document.getElementById('lightbox-close').focus();
+}
+function closeLightbox() {
+  lightboxOverlay.hidden = true;
+  lightboxImg.src = '';
+}
+lightboxOverlay.addEventListener('click', (e) => { if (e.target === lightboxOverlay) closeLightbox(); });
+document.getElementById('lightbox-close').addEventListener('click', closeLightbox);
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !lightboxOverlay.hidden) closeLightbox(); });
 
 async function downloadLoveCharCard(mode) {
   if (!lastResult) return;
