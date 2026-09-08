@@ -89,7 +89,7 @@ body {
 #app {
   position: relative;
   z-index: 1;
-  max-width: 480px;
+  max-width: 600px;
   margin: 0 auto;
   height: 100vh;
   height: 100dvh;
@@ -688,7 +688,7 @@ body {
 .follow-link:hover { border-color: var(--primary); }
 
 .site-footer {
-  max-width: 480px;
+  max-width: 600px;
   margin: 0 auto;
   padding: 18px 20px 32px;
   position: relative;
