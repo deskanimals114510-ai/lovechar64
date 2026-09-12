@@ -1,3 +1,10 @@
+// preload+media="print"で読み込んだGoogle Fontsを実際に適用する(初期描画をブロックしないための構成)。
+// インラインonload属性はCSP(script-src 'self')でブロックされるため、外部JS側で切り替える。
+(function applyPreloadedFont() {
+  const fontLink = document.getElementById('font-link');
+  if (fontLink) fontLink.media = 'all';
+})();
+
 // ===== 恋愛キャラ診断64(単独サイト版) =====
 // personality-type-quiz(MBTI診断)の恋愛キャラ診断機能を、専用の短い導線として
 // 独立サイト化したもの(2026-09-08)。当初は性格編10問+恋愛編10問=20問構成だったが、
