@@ -3,8 +3,8 @@
   --bg2: #f4e9ff;
   --bg3: #fff6e9;
   --card-bg: #ffffff;
-  --primary: #c73d70;
-  --primary-dark: #a8305c;
+  --primary: #c23a28; /* 2026-09-12、MBTI診断と完全一致していた色を毒舌キャラらしい朱色系に差別化(WCAG AA再確認済み) */
+  --primary-dark: #9c2e1f;
   --accent2: #7d4fc4;
   --accent3: #ffcf7a;
   --mint: #7ed9c9;
