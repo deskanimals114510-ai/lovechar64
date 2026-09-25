@@ -812,6 +812,18 @@ function resultUrl() {
   return location.origin + location.pathname + '?r=' + buildResultCode(lastResult);
 }
 
+// 2026-09-26: X/LINEシェア時のリンクプレビュー(OGP)対策。`?r=`の動的URLはクローラーが
+// JSを実行しないため常に汎用OGP(サイト共通のog-image.jpg)のままで、結果を反映しない。
+// 64キャラ分の静的ページ(characters/{group}_{love}.html)は個別canonical/OGP(キャラ
+// イラスト・キャラ名・punchline)を持つため、SNS共有リンクにはこちらを使う。コピーURL
+// は従来通りresultUrl()の完全な結果コードURLを維持する(MBTI診断のshareOgUrl()と同一方針)。
+function shareLoveCharOgUrl() {
+  if (!lastResult) return resultUrl();
+  const path = location.pathname;
+  const dir = path.endsWith('/') ? path : path.slice(0, path.lastIndexOf('/') + 1);
+  return location.origin + dir + 'characters/' + lastResult.groupKey + '_' + lastResult.love + '.html';
+}
+
 function copyResultUrl() {
   if (!lastResult) return;
   const btn = document.getElementById('btn-copy-url');
@@ -1220,7 +1232,7 @@ function shareLoveCharResult() {
   const groupKey = lastResult.groupKey;
   const entry = LOVECHAR64[groupKey][lastResult.love];
   const text = `恋愛キャラは「${entry.name}」でした💞\n${entry.punchline}\nあなたの恋愛キャラは?→\n※エンタメ目的の診断です\n#恋愛キャラ診断 #恋愛タイプ診断 #MBTI診断`;
-  const url = encodeURIComponent(resultUrl());
+  const url = encodeURIComponent(shareLoveCharOgUrl());
   const shareUrl = `https://x.com/intent/tweet?text=${encodeURIComponent(text)}&url=${url}`;
   window.open(shareUrl, '_blank', 'noopener,noreferrer');
   trackEvent('share', { method: 'x_lovechar', group_key: groupKey });
@@ -1230,8 +1242,9 @@ function shareLoveCharResultLine() {
   if (!lastResult) return;
   const groupKey = lastResult.groupKey;
   const entry = LOVECHAR64[groupKey][lastResult.love];
-  const text = `恋愛キャラは「${entry.name}」でした💞 あなたの恋愛キャラは?\n${resultUrl()}`;
-  const shareUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(resultUrl())}&text=${encodeURIComponent(text)}`;
+  const ogUrl = shareLoveCharOgUrl();
+  const text = `恋愛キャラは「${entry.name}」でした💞 あなたの恋愛キャラは?\n${ogUrl}`;
+  const shareUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(ogUrl)}&text=${encodeURIComponent(text)}`;
   window.open(shareUrl, '_blank', 'noopener,noreferrer');
   trackEvent('share', { method: 'line_lovechar', group_key: groupKey });
 }

@@ -745,6 +745,16 @@ body {
 .result-actions {
   margin-top: 28px;
 }
+/* .btn-primary/.btn-secondaryは元々<button>用でdisplay:blockを持たないため、
+   <a>タグに適用する際はここでブロック化する(CSPがstyle-src 'unsafe-inline'を
+   許可していないため、個別ページでのインラインstyle指定は効かない、2026-09-26追加) */
+.result-actions a.btn-primary,
+.result-actions a.btn-secondary {
+  display: block;
+  text-decoration: none;
+  text-align: center;
+  box-sizing: border-box;
+}
 .result-actions-card {
   margin-top: 14px;
 }
