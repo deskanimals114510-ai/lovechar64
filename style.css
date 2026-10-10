@@ -1180,6 +1180,13 @@ body {
   padding: 10px 8px 12px;
   box-shadow: var(--shadow-soft);
 }
+.char-gallery-card:is(a) {
+  /* 2026-10-11: カードを各キャラページへのリンクにした(サイト内からキャラページへの導線) */
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.char-gallery-card:is(a):hover { transform: translateY(-2px); }
+.char-gallery-card:is(a):focus-visible { outline: 3px solid var(--primary-dark); outline-offset: 2px; }
 .char-gallery-card img {
   width: 100%;
   aspect-ratio: 2 / 3;
