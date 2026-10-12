@@ -782,6 +782,66 @@ function computeLoveType() {
   return AXIS_PAIRS.map(pair => computeAxisWinner('love', pair)).join('');
 }
 
+// ===== 結果に合わせたおすすめ(2026-10-13、Amazonアソシエイト) =====
+// 気質グループ(NT/NF/SJ/SP)別に2点、Fable執筆。理由文は主語を「あなた」にしない形で、シェア閲覧者には「友達に贈るなら」で出す
+const AFFILIATE_TAG = 'tinywonders-22';
+const GROUP_GIFTS = {
+  NT: [
+    { name: '会話の質問カード', keyword: '会話カード 質問 友達', reason: '答えが一つじゃない問いほど、話が長く続く。' },
+    { name: 'ルービックキューブ', keyword: 'ルービックキューブ 競技用 正規', reason: '論点を整理したくなる手に、代わりに回すものを。' },
+  ],
+  NF: [
+    { name: 'チェキサイズアルバム', keyword: 'チェキ アルバム ミニ', reason: '理想の台本より、現実のアドリブを貼っていく一冊。' },
+    { name: '無香のソイキャンドル', keyword: 'ソイキャンドル 無香 ガラス', reason: '夕焼けの中で考え込む夜に、小さな灯りを一つ。' },
+  ],
+  SJ: [
+    { name: 'ペアのマグカップ', keyword: 'ペアマグ 北欧 シンプル', reason: '記念日はカレンダーに、ふたりの定位置は食器棚に。' },
+    { name: '木製フォトフレーム', keyword: 'フォトフレーム 木製 L判', reason: '予定通りの日より、予定が崩れた日の写真を飾ってみる。' },
+  ],
+  SP: [
+    { name: 'スマホ三脚', keyword: 'スマホ三脚 自撮り リモコン', reason: '思い立った日のおでかけに、記録係を一台。' },
+    { name: '塗れる日本地図ポスター', keyword: '日本地図 ポスター 旅行 記録', reason: 'ふらっと出かけた先を、一つずつ塗って残せる。' },
+  ],
+};
+
+// ¥1,000〜3,000・レビュー評価順の検索結果へ(MBTI診断のaffiliateUrlと同仕様)
+function affiliateUrl(keyword) {
+  return `https://www.amazon.co.jp/s?k=${encodeURIComponent(keyword)}&rh=p_36%3A100000-300000&s=review-rank&tag=${AFFILIATE_TAG}`;
+}
+
+// 日本時間の月日で季節の一言(MBTI診断gift.jsと同じ区切り)
+function giftSeasonLine(mode) {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Tokyo', month: '2-digit', day: '2-digit' }).formatToParts(new Date());
+  const md = Number(parts.find((p) => p.type === 'month').value) * 100 + Number(parts.find((p) => p.type === 'day').value);
+  if (md >= 1101 && md <= 1225) return 'クリスマスの贈り物にも';
+  if (md >= 1226 || md <= 110) return mode === 'gift' ? '年末年始のちょっとした贈り物にも' : '年末年始の自分へのご褒美にも';
+  if (md >= 201 && md <= 214) return 'バレンタインの贈り物にも';
+  if (md >= 301 && md <= 314) return 'ホワイトデーのお返しにも';
+  return '誕生日やちょっとしたお礼にも';
+}
+
+function renderGiftSection(types) {
+  const el = document.getElementById('gift-section');
+  const gifts = GROUP_GIFTS[types.groupKey];
+  if (!gifts) { el.hidden = true; el.innerHTML = ''; return; }
+  const name = LOVECHAR64[types.groupKey][types.love].name;
+  const mode = isSharedView ? 'gift' : 'self';
+  el.innerHTML = `
+    <p class="gift-heading">${isSharedView ? `「${name}」の友達に贈るなら` : `「${name}」のあなたに`}</p>
+    <p class="gift-season">${giftSeasonLine(mode)}</p>
+    ${gifts.map((g) => `
+    <a class="lucky-item" href="${affiliateUrl(g.keyword)}" target="_blank" rel="noopener sponsored" data-aff-item="${g.name}" data-aff-mode="${mode}">
+      <span class="lucky-emoji" aria-hidden="true">🎁</span>
+      <span class="lucky-text">
+        <span class="lucky-label"><span class="lucky-pr-tag">PR</span><span class="sr-only">(広告)</span><span class="gift-reason">${g.reason}</span></span>
+        <span class="lucky-name">${g.name}をAmazonで見る</span>
+        <span class="lucky-price">¥1,000〜3,000の価格帯で検索</span>
+      </span>
+      <span class="lucky-arrow" aria-hidden="true">›</span><span class="sr-only">(新しいタブで開きます)</span>
+    </a>`).join('')}`;
+  el.hidden = false;
+}
+
 function showResult() {
   showScreen('result');
   lastResult = {
@@ -789,7 +849,11 @@ function showResult() {
     love: computeLoveType(),
   };
   renderLoveCharCardPreview(lastResult);
-  trackEvent('quiz_complete', { love_type: lastResult.love, group_key: lastResult.groupKey });
+  renderGiftSection(lastResult);
+  trackEvent('quiz_complete', {
+    quiz_name: 'lovechar64', result_type: `${lastResult.groupKey}_${lastResult.love}`,
+    love_type: lastResult.love, group_key: lastResult.groupKey,
+  });
 }
 
 // 結果URL(?r=符号、groupKey2文字+love4文字=6文字)
@@ -1271,6 +1335,7 @@ function restartQuiz() {
   lastResult = types;
   showScreen('result');
   renderLoveCharCardPreview(types);
+  renderGiftSection(types);
 })();
 
 // ===== アクセス解析(任意) =====
@@ -1294,10 +1359,17 @@ function trackEvent(name, params) {
 document.addEventListener('click', (e) => {
   const hubCta = e.target.closest('.hub-cta');
   if (hubCta) { trackEvent('hub_cta_click', { hub_cta_id: hubCta.id || 'unknown' }); return; }
+  const luckyItem = e.target.closest('.lucky-item');
+  if (luckyItem && lastResult) {
+    trackEvent('affiliate_click', {
+      quiz_name: 'lovechar64', placement: 'gift_section', mode: luckyItem.dataset.affMode || 'self',
+      result_type: `${lastResult.groupKey}_${lastResult.love}`, item_name: luckyItem.dataset.affItem || '',
+    });
+  }
 });
 
 document.getElementById('btn-start').addEventListener('click', startQuiz);
-document.getElementById('btn-start').addEventListener('click', () => trackEvent('quiz_start'));
+document.getElementById('btn-start').addEventListener('click', () => trackEvent('quiz_start', { quiz_name: 'lovechar64' }));
 document.getElementById('btn-share-lovechar').addEventListener('click', shareLoveCharResult);
 document.getElementById('btn-share-lovechar-line').addEventListener('click', shareLoveCharResultLine);
 document.getElementById('btn-copy-url').addEventListener('click', copyResultUrl);
