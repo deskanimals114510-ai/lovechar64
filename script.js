@@ -250,7 +250,7 @@ const LOVE_QUESTIONS = [
 
 
 const BLOCK_META = {
-  personality: { label: '性格編', color: '#f5b942', textColor: '#8a6d1f' },
+  personality: { label: '性格編', color: '#f5b942', textColor: '#7a5f12' },
   love: { label: '恋愛編', color: '#ef6b96', textColor: '#a3406a' },
 };
 
@@ -687,6 +687,8 @@ function startQuiz() {
   chatLog.innerHTML = '';
   showScreen('chat');
   askNext();
+  // restartQuiz経由の再診断も数えるため、開始イベントはここで送る(ボタン側では送らない)
+  trackEvent('quiz_start', { quiz_name: 'lovechar64' });
 }
 
 function refreshBlockLabel() {
@@ -823,7 +825,10 @@ function giftSeasonLine(mode) {
 function renderGiftSection(types) {
   const el = document.getElementById('gift-section');
   const gifts = GROUP_GIFTS[types.groupKey];
-  if (!gifts) { el.hidden = true; el.innerHTML = ''; return; }
+  if (!gifts) {
+    if (giftSectionObserver) { giftSectionObserver.disconnect(); giftSectionObserver = null; }
+    el.hidden = true; el.innerHTML = ''; return;
+  }
   const name = LOVECHAR64[types.groupKey][types.love].name;
   const mode = isSharedView ? 'gift' : 'self';
   el.innerHTML = `
@@ -840,6 +845,24 @@ function renderGiftSection(types) {
       <span class="lucky-arrow" aria-hidden="true">›</span><span class="sr-only">(新しいタブで開きます)</span>
     </a>`).join('')}`;
   el.hidden = false;
+  observeGiftSectionView(el, types, mode);
+}
+
+// 贈り物欄が画面に半分以上入ったら1回だけsection_viewを送る(描画ごとに付け直し)
+let giftSectionObserver = null;
+function observeGiftSectionView(el, types, mode) {
+  if (giftSectionObserver) { giftSectionObserver.disconnect(); giftSectionObserver = null; }
+  if (!('IntersectionObserver' in window)) return;
+  giftSectionObserver = new IntersectionObserver((entries, obs) => {
+    if (!entries.some((en) => en.isIntersecting && en.intersectionRatio >= 0.5)) return;
+    obs.disconnect();
+    if (giftSectionObserver === obs) giftSectionObserver = null;
+    trackEvent('section_view', {
+      quiz_name: 'lovechar64', placement: 'gift_section', mode,
+      result_type: `${types.groupKey}_${types.love}`,
+    });
+  }, { threshold: 0.5 });
+  giftSectionObserver.observe(el);
 }
 
 function showResult() {
@@ -891,12 +914,24 @@ function shareLoveCharOgUrl() {
 function copyResultUrl() {
   if (!lastResult) return;
   const btn = document.getElementById('btn-copy-url');
-  const original = btn.textContent;
+  // 表示中(コピーしました)に連打されても元の文言を取り違えないよう、最初の文言を保持して戻す
+  const original = btn.dataset.label || (btn.dataset.label = btn.textContent);
+  const showMsg = (msg) => {
+    btn.textContent = msg;
+    clearTimeout(btn._msgTimer);
+    btn._msgTimer = setTimeout(() => { btn.textContent = original; }, 1800);
+  };
+  if (!navigator.clipboard || !navigator.clipboard.writeText) {
+    showMsg('コピーできませんでした');
+    return;
+  }
   navigator.clipboard.writeText(resultUrl()).then(() => {
-    btn.textContent = 'コピーしました ✓';
-    setTimeout(() => { btn.textContent = original; }, 1800);
+    showMsg('コピーしました ✓');
+    trackEvent('copy_url');
+  }).catch((e) => {
+    console.error('結果URLのコピーに失敗しました', e);
+    showMsg('コピーできませんでした');
   });
-  trackEvent('copy_url');
 }
 
 // ===== カード描画共通ツールキット(personality-type-quiz本家と同一実装) =====
@@ -1208,13 +1243,14 @@ async function renderLoveCharCardPreview(types) {
     // 診断結果(キャラ名・毒舌文・決め台詞)はcanvas画像にしか描画されないため、
     // altに実際の内容を入れないとスクリーンリーダー利用者が結果を一切知る手段がない
     // (5名レビューのアクセシビリティ観点で重要度高として指摘、2026-09-09対応)
-    img.alt = `${cat.name}。${cat.blurb} ${cat.punchline}(タップして拡大表示)`;
+    const altText = `${cat.name}。${cat.blurb} ${cat.punchline}`;
+    img.alt = `${altText}(タップして拡大表示)`;
     img.width = 1200;
     img.height = 630;
     img.tabIndex = 0;
     img.setAttribute('role', 'button');
-    img.addEventListener('click', () => openLightbox(dataUrl));
-    img.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(dataUrl); } });
+    img.addEventListener('click', () => openLightbox(dataUrl, altText));
+    img.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openLightbox(dataUrl, altText); } });
     preview.appendChild(img);
   } catch (e) {
     console.error('恋愛キャラカードプレビューの生成に失敗しました', e);
@@ -1230,15 +1266,17 @@ const lightboxOverlay = document.getElementById('lightbox-overlay');
 const lightboxImg = document.getElementById('lightbox-img');
 const lightboxCloseBtn = document.getElementById('lightbox-close');
 let lightboxTriggerEl = null; // 開いたきっかけの要素。閉じた時にフォーカスを戻すため保持
-function openLightbox(src) {
+function openLightbox(src, alt) {
   lightboxTriggerEl = document.activeElement;
   lightboxImg.src = src;
+  lightboxImg.alt = alt || '';
   lightboxOverlay.hidden = false;
   lightboxCloseBtn.focus();
 }
 function closeLightbox() {
   lightboxOverlay.hidden = true;
   lightboxImg.src = '';
+  lightboxImg.alt = '';
   // フォーカスを開いた画像に戻す(閉じるボタンに置き去りにされたままだと、
   // キーボード/スクリーンリーダー利用者が今どこにいるか分からなくなる。
   // 5名レビューのアクセシビリティ観点で指摘、2026-09-09対応)
@@ -1264,8 +1302,9 @@ async function downloadLoveCharCard(mode) {
   btn.disabled = true;
   try {
     const canvas = await buildLoveCharCardCanvas(lastResult, mode);
-    await new Promise((resolve) => {
+    await new Promise((resolve, reject) => {
       canvas.toBlob((blob) => {
+        if (!blob) { reject(new Error('canvas.toBlobがnullを返しました')); return; }
         const a = document.createElement('a');
         const url = URL.createObjectURL(blob);
         a.href = url;
@@ -1277,7 +1316,7 @@ async function downloadLoveCharCard(mode) {
         resolve();
       }, 'image/png');
     });
-    trackEvent('save_card', { mode: mode === 'story' ? 'lovechar_story' : 'lovechar', group_key: groupKey });
+    trackEvent('save_card', { quiz_name: 'lovechar64', card_format: mode === 'story' ? 'lovechar_story' : 'lovechar', group_key: groupKey });
   } catch (e) {
     console.error('恋愛キャラカード生成に失敗しました', e);
     // ボタンがラベルだけ戻って「何も起きなかったように見える」との指摘(5名レビュー
@@ -1347,7 +1386,7 @@ if (GA_MEASUREMENT_ID && !isLocalDev) {
   gaScript.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
   document.head.appendChild(gaScript);
   window.dataLayer = window.dataLayer || [];
-  function gtag() { dataLayer.push(arguments); }
+  window.gtag = function gtag() { window.dataLayer.push(arguments); };
   gtag('js', new Date());
   gtag('config', GA_MEASUREMENT_ID);
 }
@@ -1369,7 +1408,6 @@ document.addEventListener('click', (e) => {
 });
 
 document.getElementById('btn-start').addEventListener('click', startQuiz);
-document.getElementById('btn-start').addEventListener('click', () => trackEvent('quiz_start', { quiz_name: 'lovechar64' }));
 document.getElementById('btn-share-lovechar').addEventListener('click', shareLoveCharResult);
 document.getElementById('btn-share-lovechar-line').addEventListener('click', shareLoveCharResultLine);
 document.getElementById('btn-copy-url').addEventListener('click', copyResultUrl);
